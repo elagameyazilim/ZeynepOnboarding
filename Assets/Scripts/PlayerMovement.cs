@@ -52,9 +52,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-        if (!IsGrounded()) 
+        if (!IsGrounded() && !isOnWater) 
         {
-            Debug.Log("Player is not grounded.");
+            Debug.Log("Player is not grounded and not on water.");
 
             if (stackSystem != null && stackSystem.GetWoodCount() > 0) 
             {
@@ -107,8 +107,18 @@ public class PlayerMovement : MonoBehaviour
         }
         else if (other.CompareTag("WaterTrigger"))
         {
+            isOnWater = true; 
             Debug.Log("Player fell into the water! Game Over.");
             GameManager.Instance.GameOver();
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("WaterTrigger"))
+        {
+            isOnWater = false;
+            Debug.Log("Player exited water.");
         }
     }
 
@@ -141,7 +151,8 @@ public class PlayerMovement : MonoBehaviour
 
     private bool IsGrounded()
     {
-        bool grounded = Physics.Raycast(transform.position, Vector3.down, 1.1f);
+        LayerMask groundLayer = LayerMask.GetMask("Ground");
+        bool grounded = Physics.Raycast(transform.position, Vector3.down, 1.5f, groundLayer);
         Debug.Log("Is player grounded? " + grounded);
         return grounded;
     }

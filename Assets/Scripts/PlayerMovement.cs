@@ -126,12 +126,18 @@ public class PlayerMovement : MonoBehaviour
     {
         if (!hasJumped)
         {
-            Vector3 jumpDirection = (transform.forward + new Vector3(0, 0.5f, 0)).normalized;
+            // Y eksenini serbest bırak
+            FreezeYPosition(false);
+
+            // Zıplama yönü, sadece yukarı doğru kuvvet uygulayalım
+            Vector3 jumpDirection = Vector3.up;  // Sadece yukarı doğru bir kuvvet
             rb.AddForce(jumpDirection * jumpForce, ForceMode.Impulse);
             hasJumped = true;
+
             Debug.Log("Player jumped with force: " + jumpDirection * jumpForce);
         }
     }
+
 
     private void OnCollisionEnter(Collision other)
     {
@@ -139,7 +145,8 @@ public class PlayerMovement : MonoBehaviour
 
         if (other.gameObject.CompareTag("Ground"))
         {
-            hasJumped = false;  
+            hasJumped = false; 
+            FreezeYPosition(true);
             Debug.Log("Player grounded.");
         }
         else if (other.gameObject.CompareTag("Obstacle"))

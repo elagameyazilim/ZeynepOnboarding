@@ -8,87 +8,80 @@ public class PlayerMovement : MonoBehaviour
     private float rotationSpeed = 5.0f;
     public Vector3 startPosition;
     public Transform stackPoint;
-    private StackSystem stackSystem; 
+    private StackSystem stackSystem;
 
     private float dropInterval = 0.15f; 
     private float nextDropTime = 0.0f; 
     
-    public float jumpForce = 1.5f;
-    private bool hasJumped;
+    public float jumpForce = 2.5f; // Zıplama kuvveti
+    private bool hasJumped = false;
     
-    private bool isOnWater = false; 
+    private bool isOnWater = false;
     private float odunYuksekligi = 0.15f;
 
-    private Transform waterSurface;  // Su yüzeyi
+    private Transform waterSurface;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         startPosition = transform.position;
         stackSystem = GetComponent<StackSystem>();
-        waterSurface = GameObject.FindGameObjectWithTag("Water").transform;  // Su yüzeyini al
+        waterSurface = GameObject.FindGameObjectWithTag("Water")?.transform;
+
         Debug.Log("Player initialized at position: " + startPosition);
     }
 
     void FixedUpdate()
     {
+        // Player ileri hareket
         Vector3 forwardMovement = transform.forward * speed * Time.deltaTime;
         rb.MovePosition(rb.position + forwardMovement); 
-        Debug.Log("Player moving forward. Current position: " + rb.position);
 
+        // Dokunma ile sağa/sola döndürme
         if (Input.touchCount > 0)
         {
             Touch touch = Input.GetTouch(0);
-
             if (touch.phase == TouchPhase.Moved)
             {
                 float deltaX = touch.deltaPosition.x * rotationSpeed * Time.deltaTime;
                 Quaternion rotation = Quaternion.Euler(0, deltaX, 0);
-                rb.MoveRotation(rb.rotation * rotation); 
-                Debug.Log("Player rotated. New rotation: " + rb.rotation.eulerAngles);
+                rb.MoveRotation(rb.rotation * rotation);
             }
         }
     }
 
     private void Update()
     {
-        if (!IsGrounded() && !isOnWater) 
+        // Eğer zemin üzerinde değilse ve suda değilse
+        if (!IsGrounded() && !isOnWater)
         {
-            Debug.Log("Player is not grounded and not on water.");
-
             if (stackSystem != null && stackSystem.GetWoodCount() > 0) 
             {
                 FreezeYPosition(true);
-                Debug.Log("Freezing Y position.");
-                
+
                 if (Time.time >= nextDropTime)
                 {
                     GameObject wood = stackSystem.RemoveWood();
                     if (wood != null)
                     {
-                        wood.transform.position = new Vector3(transform.position.x, waterSurface.position.y + odunYuksekligi, transform.position.z); // Su yüzeyine yakın yerleştir
-                        wood.transform.rotation = transform.rotation; //Quaternion.identity; 
+                        wood.transform.position = new Vector3(transform.position.x, waterSurface.position.y + odunYuksekligi, transform.position.z);
+                        wood.transform.rotation = transform.rotation;
                         wood.SetActive(true);
-                        Debug.Log("Wood dropped. Position: " + wood.transform.position);
                     }
-                    nextDropTime = Time.time + dropInterval; 
+                    nextDropTime = Time.time + dropInterval;
                 }
             }
             else
             {
                 FreezeYPosition(false);
-                Debug.Log("No wood left. Allowing Y position movement.");
             }
         }
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        Debug.Log("Player triggered: " + other.gameObject.name);
-
         if (other.CompareTag("Finish"))
         {
-            Debug.Log("Player reached finish line!");
             GameManager.Instance.GameOver();
         }
         else if (other.CompareTag("Collectible"))
@@ -96,8 +89,7 @@ public class PlayerMovement : MonoBehaviour
             Destroy(other.gameObject); 
             if (stackSystem != null)
             {
-                stackSystem.AddWood(1); 
-                Debug.Log("Collected wood. Total wood: " + stackSystem.GetWoodCount());
+                stackSystem.AddWood(1);
             }
         }
         else if (other.CompareTag("Booster"))
@@ -108,7 +100,6 @@ public class PlayerMovement : MonoBehaviour
         else if (other.CompareTag("WaterTrigger"))
         {
             isOnWater = true; 
-            Debug.Log("Player fell into the water! Game Over.");
             GameManager.Instance.GameOver();
         }
     }
@@ -118,7 +109,6 @@ public class PlayerMovement : MonoBehaviour
         if (other.CompareTag("WaterTrigger"))
         {
             isOnWater = false;
-            Debug.Log("Player exited water.");
         }
     }
 
@@ -126,42 +116,32 @@ public class PlayerMovement : MonoBehaviour
     {
         if (!hasJumped)
         {
-            // Y eksenini serbest bırak
+            // Zıplama kuvveti uygula
             FreezeYPosition(false);
-
-            // Zıplama yönü, sadece yukarı doğru kuvvet uygulayalım
-            Vector3 jumpDirection = Vector3.up;  // Sadece yukarı doğru bir kuvvet
-            rb.AddForce(jumpDirection * jumpForce, ForceMode.Impulse);
+            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
             hasJumped = true;
 
-            Debug.Log("Player jumped with force: " + jumpDirection * jumpForce);
+            Debug.Log("Player jumped.");
         }
     }
 
-
     private void OnCollisionEnter(Collision other)
     {
-        Debug.Log("Player collided with: " + other.gameObject.name);
-
         if (other.gameObject.CompareTag("Ground"))
         {
             hasJumped = false; 
             FreezeYPosition(true);
-            Debug.Log("Player grounded.");
         }
         else if (other.gameObject.CompareTag("Obstacle"))
         {
-            rb.rotation = Quaternion.Euler(0, rb.rotation.eulerAngles.y, 0); 
-            Debug.Log("Player hit an obstacle. Resetting rotation.");
+            rb.rotation = Quaternion.Euler(0, rb.rotation.eulerAngles.y, 0);
         }
     }
 
     private bool IsGrounded()
     {
         LayerMask groundLayer = LayerMask.GetMask("Ground");
-        bool grounded = Physics.Raycast(transform.position, Vector3.down, 1.5f, groundLayer);
-        Debug.Log("Is player grounded? " + grounded);
-        return grounded;
+        return Physics.Raycast(transform.position, Vector3.down, 1.5f, groundLayer);
     }
 
     private void FreezeYPosition(bool freeze)
@@ -169,12 +149,10 @@ public class PlayerMovement : MonoBehaviour
         if (freeze)
         {
             rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY | RigidbodyConstraints.FreezeRotationZ; 
-            Debug.Log("Y position frozen.");
         }
         else
         {
             rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY | RigidbodyConstraints.FreezeRotationZ;
-            Debug.Log("Y position unfrozen.");
         }
     }
 }

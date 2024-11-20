@@ -67,7 +67,7 @@ public class PlayerMovement : MonoBehaviour
                     if (wood != null)
                     {
                         wood.transform.position = new Vector3(transform.position.x, waterSurface.position.y + odunYuksekligi, transform.position.z); // Su yüzeyine yakın yerleştir
-                        wood.transform.rotation = Quaternion.identity; 
+                        wood.transform.rotation = transform.rotation; //Quaternion.identity; 
                         wood.SetActive(true);
                         Debug.Log("Wood dropped. Position: " + wood.transform.position);
                     }

@@ -1,20 +1,36 @@
 using System;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    private Rigidbody rb;
-    private float speed = 4.0f;
-    private float rotationSpeed = 5.0f;
     public Vector3 startPosition;
     public Transform stackPoint;
+    public float jumpForce;
+    [SerializeField]
+    private LayerMask groundLayer;
+
+    [SerializeField]
+    private Vector3 rayDirection;
+    [SerializeField]
+    private Vector3 rayPositionOffset;
+    [SerializeField]
+    private float rayDistance;
+    
+    private Rigidbody rb;
+    [SerializeField]
+    private float speed = 4.0f;
+    [SerializeField]
+    private float rotationSpeed = 5.0f;
+    [SerializeField]
+    private bool hasJumped = false;
+    
     private StackSystem stackSystem;
 
     private float dropInterval = 0.15f; 
     private float nextDropTime = 0.0f; 
     
-    public float jumpForce = 2.5f; // Zıplama kuvveti
-    private bool hasJumped = false;
+    
     
     private bool isOnWater = false;
     private float odunYuksekligi = 0.15f;
@@ -111,13 +127,13 @@ public class PlayerMovement : MonoBehaviour
             isOnWater = false;
         }
     }
-
+    [Button]
     private void Jump()
     {
         if (!hasJumped)
         {
-            // Zıplama kuvveti uygula
             FreezeYPosition(false);
+            rb.velocity = Vector3.zero;
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
             hasJumped = true;
 
@@ -140,14 +156,28 @@ public class PlayerMovement : MonoBehaviour
 
     private bool IsGrounded()
     {
-        LayerMask groundLayer = LayerMask.GetMask("Ground");
-        return Physics.Raycast(transform.position, Vector3.down, 1.5f, groundLayer);
+        var value = Physics.Raycast(transform.position + rayPositionOffset, rayDirection, rayDistance, groundLayer);
+        if (value)
+        {
+            Debug.Log("Grounded");
+        }
+        else
+        {
+            Debug.Log("On water");
+        }
+
+        return value;
     }
 
+    
     private void FreezeYPosition(bool freeze)
     {
         if (freeze)
         {
+            if (hasJumped)
+            {
+                return;
+            } 
             rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY | RigidbodyConstraints.FreezeRotationZ; 
         }
         else
